@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stock Market Simulator</title>
+  <style>
+:root {
+  --bg: #eef1ed;
+  --surface: #ffffff;
+  --ink: #17231f;
+  --muted: #62716b;
+  --line: #d7dfd9;
+  --brand: #1f4d3f;
+  --up: #1b7a46;
+  --down: #c0392b;
+  --radius: 8px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  line-height: 1.5;
+}
+
+h1, h2 { margin: 0; font-weight: 600; }
+h1 { font-size: 1.25rem; }
+h2 { font-size: 1.05rem; margin-bottom: 12px; }
+
+/* ---------- Top bar ---------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding: 14px 24px;
+  background: var(--brand);
+  color: #fff;
+}
+.stats { display: flex; gap: 28px; flex-wrap: wrap; margin-left: auto; }
+.stat { display: flex; flex-direction: column; }
+.stat .label { font-size: 0.75rem; opacity: 0.75; }
+.stat .value { font-size: 1.05rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ---------- Layout ---------- */
+.layout {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+  max-width: 1100px;
+  margin: 24px auto;
+  padding: 0 20px;
+}
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+}
+.panel.wide { grid-column: 1 / -1; }
+.panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+/* ---------- Tables ---------- */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+th, td { padding: 9px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+tbody tr:hover { background: #f5f8f5; }
+
+.up { color: var(--up); }
+.down { color: var(--down); }
+
+/* ---------- Forms ---------- */
+.form { display: flex; flex-direction: column; gap: 6px; }
+label { font-size: 0.85rem; color: var(--muted); margin-top: 6px; }
+input {
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+  background: #fff;
+  color: var(--ink);
+}
+input:focus-visible, .btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+.btn-row { display: flex; gap: 10px; margin-top: 14px; }
+.btn {
+  padding: 9px 18px;
+  border: 0;
+  border-radius: 6px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  color: #fff;
+}
+.btn:hover { filter: brightness(1.08); }
+.btn.primary { background: #fff; color: var(--brand); }
+.btn.buy { background: var(--up); flex: 1; }
+.btn.sell { background: var(--down); flex: 1; }
+
+.message { margin: 12px 0 0; font-size: 0.88rem; color: var(--muted); min-height: 1.4em; }
+.empty { color: var(--muted); margin: 12px 0 0; }
+
+/* ---------- Portfolio summary ---------- */
+.summary {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.summary div { display: flex; flex-direction: column; font-weight: 600; font-variant-numeric: tabular-nums; }
+.summary .label { font-weight: 400; margin: 0; }
+
+/* ---------- Mobile ---------- */
+@media (max-width: 760px) {
+  .layout { grid-template-columns: 1fr; }
+  .stats { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+  <!-- Top bar: Day, Balance, Net Worth, Next Day -->
+  <header class="topbar">
+    <h1>Stock Market Simulator</h1>
+    <div class="stats">
+      <div class="stat"><span class="label">Day</span><span class="value" id="day">1</span></div>
+      <div class="stat"><span class="label">Cash balance</span><span class="value" id="balance">Rs 100000.00</span></div>
+      <div class="stat"><span class="label">Net worth</span><span class="value" id="networth">Rs 100000.00</span></div>
+    </div>
+    <button class="btn primary" id="nextDayBtn">Next day</button>
+  </header>
+
+  <main class="layout">
+
+    <!-- Market (menu 1 + 2) -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Market</h2>
+        <input type="search" id="searchInput" placeholder="Search by symbol, e.g. TCS">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Symbol</th><th>Company</th><th class="num">Price</th><th class="num">Change</th></tr>
+          </thead>
+          <tbody id="marketBody">
+            <!-- Rows will be generated later. Sample rows: -->
+            <tr><td>TCS</td><td>Tata Consultancy Services</td><td class="num">Rs 3800.00</td><td class="num">+0.00%</td></tr>
+            <tr><td>INFY</td><td>Infosys Ltd</td><td class="num">Rs 1550.00</td><td class="num">+0.00%</td></tr>
+            <tr><td>RELIANCE</td><td>Reliance Industries</td><td class="num">Rs 2950.00</td><td class="num">+0.00%</td></tr>
+            <tr><td>HDFC</td><td>HDFC Bank Ltd</td><td class="num">Rs 1650.00</td><td class="num">+0.00%</td></tr>
+            <tr><td>WIPRO</td><td>Wipro Ltd</td><td class="num">Rs 480.00</td><td class="num">+0.00%</td></tr>
+            <tr><td>ITC</td><td>ITC Ltd</td><td class="num">Rs 430.00</td><td class="num">+0.00%</td></tr>
+            <tr><td>SBIN</td><td>State Bank of India</td><td class="num">Rs 810.00</td><td class="num">+0.00%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Trade (menu 3 + 4) -->
+    <section class="panel">
+      <h2>Trade</h2>
+      <div class="form">
+        <label for="tradeSymbol">Stock symbol</label>
+        <input type="text" id="tradeSymbol" placeholder="e.g. INFY">
+
+        <label for="tradeQty">Quantity</label>
+        <input type="number" id="tradeQty" min="1" value="1">
+
+        <div class="btn-row">
+          <button class="btn buy" id="buyBtn">Buy</button>
+          <button class="btn sell" id="sellBtn">Sell</button>
+        </div>
+        <p class="message" id="message" role="status">Messages like "Bought 10 TCS" will show here.</p>
+      </div>
+    </section>
+
+    <!-- Portfolio (menu 5) -->
+    <section class="panel wide">
+      <h2>Your portfolio</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Symbol</th><th class="num">Qty</th><th class="num">Avg buy</th>
+              <th class="num">Current</th><th class="num">Value</th><th class="num">Profit / Loss</th>
+            </tr>
+          </thead>
+          <tbody id="portfolioBody">
+            <!-- Rows will be generated later (empty on Day 1) -->
+          </tbody>
+        </table>
+      </div>
+      <p class="empty" id="emptyPortfolio">You don't own any stocks yet. Buy one from the market.</p>
+
+      <div class="summary">
+        <div><span class="label">Total invested</span><span id="totalInvested">Rs 0.00</span></div>
+        <div><span class="label">Holdings value</span><span id="holdingsValue">Rs 0.00</span></div>
+        <div><span class="label">Total profit / loss</span><span id="totalPL">Rs 0.00</span></div>
+      </div>
+    </section>
+
+  </main>
+
+</body>
+</html>
